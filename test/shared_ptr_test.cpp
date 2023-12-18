@@ -104,4 +104,22 @@ TEST_CASE("shared_ptr: checked delete", "[shared_ptr][normal]") {
     // shared_ptr<empty_t> ptr;
 }
 
+TEST_CASE("shared_ptr: ptr reusage") {
+    const int test_val = 10;
+    shared_ptr<int> keka(test_val);
+
+    {
+        shared_ptr<int> other_ptr = keka;
+
+        REQUIRE(*other_ptr == test_val);
+    }
+
+    REQUIRE(*keka == test_val);
+    
+    REQUIRE(keka != shared_ptr<int>());
+
+    keka = shared_ptr<int>();
+    REQUIRE(keka == shared_ptr<int>());
+}
+
 } // namespace postfix::util
