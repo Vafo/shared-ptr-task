@@ -7,7 +7,7 @@
 
 #include "checked_delete.hpp"
 
-namespace io_service::util {
+namespace memory {
 
 template<typename T>
 class shared_ptr {
@@ -103,7 +103,7 @@ private:
         ~shared_ptr_impl() {
             using alloc_traits = std::allocator_traits< std::allocator<T> >; 
             // checked delete
-            check_if_deletable(obj);        
+            util::check_if_deletable(obj);        
 
             alloc_traits::destroy(allocator, obj);
             alloc_traits::deallocate(allocator, obj, 1);
@@ -147,6 +147,6 @@ public:
     }
 };
 
-} // namespace util
+} // namespace memory
 
 #endif
