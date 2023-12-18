@@ -1,0 +1,8 @@
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+
+add_library(shared_ptr_impl INTERFACE)
+
+target_include_directories(shared_ptr_impl INTERFACE .)
+
+target_link_libraries(shared_ptr_impl INTERFACE checked_delete_impl compiler_flags)
