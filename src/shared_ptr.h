@@ -5,9 +5,11 @@
 #include <cassert>
 
 #include "checked_delete.hpp"
+#include "raii.h"
 
 namespace memory {
 
+// Forward Declaration
 template<
     typename T,
     typename Allocator
@@ -38,9 +40,11 @@ public:
     T *obj;
     Allocator allocator;
     std::atomic<int> ref_count;
-};
+}; // struct shared_ptr_impl
+
 
 } // namespace detail
+
 
 template<
     typename T,
@@ -62,8 +66,12 @@ public:
         using alloc_traits = std::allocator_traits< Allocator >; 
         // TODO: Reduce to 1 allocator call
         T *ptr = alloc_traits::allocate(allocator, 1);
+        util::raii::ptr_holder holder(ptr, allocator);
+
         alloc_traits::construct(allocator, ptr, obj);
-        impl = new detail::shared_ptr_impl(ptr);
+        impl = new detail::shared_ptr_impl(ptr); 
+
+        util::raii::relax(holder);
     }
 
     // allocate copy of obj
@@ -83,8 +91,11 @@ public:
 
         // TODO: Exception safety anybody ?
         D *ptr = alloc_traits::allocate(d_allocator, 1);
-        alloc_traits::construct(d_allocator, ptr, obj);
+        util::raii::ptr_holder holder(ptr, d_allocator);
+
         impl = new detail::shared_ptr_impl(ptr);
+
+        util::raii::relax(holder);
     }
 
     // Take ownership of obj
