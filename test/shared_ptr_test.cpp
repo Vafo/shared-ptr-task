@@ -122,4 +122,29 @@ TEST_CASE("shared_ptr: ptr reusage") {
     REQUIRE(keka == shared_ptr<int>());
 }
 
+struct bad_obj {
+    bad_obj() {
+        throw std::runtime_error("bad object");
+    }
+
+    int big_data;
+};
+
+void leak_safe_constructor(bad_obj* ptr, std::allocator<bad_obj>& bad_alloc) {
+    using allocator_t = std::allocator<bad_obj>;
+
+    util::raii::ptr_holder holder(ptr, bad_alloc);
+    std::allocator_traits< allocator_t >::construct(bad_alloc, ptr); // throws
+
+    util::raii::relax(holder);
+}
+
+TEST_CASE("raii::ptr_holder: bad constructor", "[ptr_holder]") {
+    using allocator_t = std::allocator<bad_obj>;
+    allocator_t bad_alloc;
+    bad_obj* ptr = std::allocator_traits< allocator_t >::allocate(bad_alloc, 1);
+
+    REQUIRE_THROWS(leak_safe_constructor(ptr, bad_alloc));
+}
+
 } // namespace postfix::util
