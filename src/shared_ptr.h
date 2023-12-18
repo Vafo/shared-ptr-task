@@ -48,16 +48,16 @@ template<
 >
 class shared_ptr {
 public:
-    shared_ptr(T *ptr = NULL)
-        : impl(NULL)
+    shared_ptr(T *ptr = nullptr)
+        : impl(nullptr)
     {
-        if(ptr != NULL)
+        if(ptr != nullptr)
             impl = new detail::shared_ptr_impl(ptr);
     }
 
     // allocate copy of obj
     shared_ptr(const T& obj)
-        : impl(NULL)
+        : impl(nullptr)
     {
         using alloc_traits = std::allocator_traits< Allocator >; 
         // TODO: Reduce to 1 allocator call
@@ -76,7 +76,7 @@ public:
         const D& obj,
         D_Allocator d_allocator = D_Allocator()
     )
-        : impl(NULL)
+        : impl(nullptr)
     {
         static_assert(std::is_base_of<T, D>::value);
         using alloc_traits = std::allocator_traits< std::allocator<D> >; 
@@ -90,15 +90,15 @@ public:
     // Take ownership of obj
     // Argument is pointer to derived object
     template<typename D>
-    shared_ptr(const D* obj): impl(NULL) {
+    shared_ptr(const D* obj): impl(nullptr) {
         static_assert(std::is_base_of<T, D>::value);
 
-        if(obj != NULL)
+        if(obj != nullptr)
             impl = new detail::shared_ptr_impl(obj);
     }
     
     shared_ptr(const shared_ptr& other): impl(other.impl) {
-        if(impl != NULL) {
+        if(impl != nullptr) {
             ++impl->ref_count;
         }
     }
@@ -116,25 +116,25 @@ public:
 
     T&
     operator*() {
-        assert(impl != NULL);
+        assert(impl != nullptr);
         return *impl->obj;
     }
 
     const T&
     operator*() const {
-        assert(impl != NULL);
+        assert(impl != nullptr);
         return *impl->obj;
     }
 
     T*
     operator->() {
-        assert(impl != NULL);
+        assert(impl != nullptr);
         return impl->obj;
     }
 
     const T*
     operator->() const {
-        assert(impl != NULL);
+        assert(impl != nullptr);
         return impl->obj;
     }
 
@@ -167,7 +167,7 @@ public:
 private:
 
     void dec_n_check() {
-        if(impl != NULL) {
+        if(impl != nullptr) {
             int stored_val = impl->ref_count.load();
             while(!impl->ref_count.compare_exchange_weak(stored_val, stored_val - 1))
                 ;
