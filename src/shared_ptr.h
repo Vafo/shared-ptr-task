@@ -42,7 +42,6 @@ public:
     std::atomic<int> ref_count;
 }; // struct shared_ptr_impl
 
-
 } // namespace detail
 
 
@@ -66,7 +65,7 @@ public:
         using alloc_traits = std::allocator_traits< Allocator >; 
         // TODO: Reduce to 1 allocator call
         T *ptr = alloc_traits::allocate(allocator, 1);
-        util::raii::ptr_holder holder(ptr, allocator);
+        util::raii::ptr_holder holder(ptr, allocator); /*if constructor fails*/
 
         alloc_traits::construct(allocator, ptr, obj);
         impl = new detail::shared_ptr_impl(ptr); 
@@ -91,7 +90,7 @@ public:
 
         // TODO: Exception safety anybody ?
         D *ptr = alloc_traits::allocate(d_allocator, 1);
-        util::raii::ptr_holder holder(ptr, d_allocator);
+        util::raii::ptr_holder holder(ptr, d_allocator); /*if constructor fails*/
 
         impl = new detail::shared_ptr_impl(ptr);
 
@@ -101,14 +100,18 @@ public:
     // Take ownership of obj
     // Argument is pointer to derived object
     template<typename D>
-    shared_ptr(const D* obj): impl(nullptr) {
+    shared_ptr(const D* obj)
+        : impl(nullptr)
+    {
         static_assert(std::is_base_of<T, D>::value);
 
         if(obj != nullptr)
             impl = new detail::shared_ptr_impl(obj);
     }
     
-    shared_ptr(const shared_ptr& other): impl(other.impl) {
+    shared_ptr(const shared_ptr& other)
+        : impl(other.impl)
+    {
         if(impl != nullptr) {
             ++impl->ref_count;
         }
@@ -149,7 +152,7 @@ public:
         return impl->obj;
     }
 
-    bool operator== (const shared_ptr &b) const {
+    bool operator==(const shared_ptr &b) const {
         if(impl == nullptr || b.impl == nullptr) {
             if(impl == nullptr && b.impl == nullptr)
                 return true;
@@ -160,7 +163,7 @@ public:
         return impl->obj == b.impl->obj;
     }
 
-    bool operator!= (const shared_ptr &b) const {
+    bool operator!=(const shared_ptr &b) const {
         return !(*this == b);
     }
 
