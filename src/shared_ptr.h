@@ -22,8 +22,8 @@ template<
     typename T,
     typename Allocator = std::allocator<T>
 >
-struct shared_ptr_impl {
-public:
+class shared_ptr_impl {
+private: /*explicit*/
     shared_ptr_impl(T *ptr): obj(ptr), ref_count(1) {}
 
     ~shared_ptr_impl() {
@@ -35,12 +35,12 @@ public:
         alloc_traits::deallocate(allocator, obj, 1);
     }
 
-    friend class shared_ptr<T, Allocator>;
+    friend class shared_ptr<T, Allocator>; /*the only user*/
 
     T *obj;
     Allocator allocator;
     std::atomic<int> ref_count;
-}; // struct shared_ptr_impl
+}; // class shared_ptr_impl
 
 } // namespace detail
 
@@ -65,12 +65,14 @@ public:
         using alloc_traits = std::allocator_traits< Allocator >; 
         // TODO: Reduce to 1 allocator call
         T *ptr = alloc_traits::allocate(allocator, 1);
-        util::raii::ptr_holder holder(ptr, allocator); /*if constructor fails*/
+        util::raii::ptr_holder obj_holder(ptr, allocator); /*if cb alloc fails*/
+
+        impl = new detail::shared_ptr_impl(ptr); 
+        util::raii::ptr_holder cb_holder(impl); /*if constructor fails*/
 
         alloc_traits::construct(allocator, ptr, obj);
-        impl = new detail::shared_ptr_impl(ptr); 
 
-        util::raii::relax(holder);
+        util::raii::relax(obj_holder, cb_holder);
     }
 
     // allocate copy of obj
@@ -90,11 +92,14 @@ public:
 
         // TODO: Exception safety anybody ?
         D *ptr = alloc_traits::allocate(d_allocator, 1);
-        util::raii::ptr_holder holder(ptr, d_allocator); /*if constructor fails*/
-
+        util::raii::ptr_holder obj_holder(ptr, d_allocator); /*if cb alloc fails*/
+        
         impl = new detail::shared_ptr_impl(ptr);
+        util::raii::ptr_holder cb_holder(impl); /*if constructor fails*/
 
-        util::raii::relax(holder);
+        alloc_traits::construct(d_allocator, ptr);
+
+        util::raii::relax(obj_holder, cb_holder);
     }
 
     // Take ownership of obj

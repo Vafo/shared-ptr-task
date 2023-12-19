@@ -4,11 +4,11 @@ namespace raii {
 
 template<
     typename T,
-    typename Allocator
+    typename Allocator = std::allocator<T>
 >
 class ptr_holder {
 public:
-    ptr_holder(T* in_ptr, Allocator& in_alloc)
+    ptr_holder(T* in_ptr, const Allocator& in_alloc = Allocator())
         : ptr(in_ptr)
         , allocator(in_alloc)
     { }
@@ -19,6 +19,8 @@ public:
 
     ~ptr_holder() {
         using alloc_traits = std::allocator_traits< Allocator >; 
+
+        check_if_deletable(ptr);
         if(ptr != nullptr)
             alloc_traits::deallocate(allocator, ptr, 1);
     }
