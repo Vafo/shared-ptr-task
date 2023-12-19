@@ -58,6 +58,18 @@ public:
             impl = new detail::shared_ptr_impl(ptr);
     }
 
+    // Take ownership of obj
+    // Argument is pointer to derived object
+    template<typename D>
+    shared_ptr(const D* obj)
+        : impl(nullptr)
+    {
+        static_assert(std::is_base_of<T, D>::value);
+
+        if(obj != nullptr)
+            impl = new detail::shared_ptr_impl(obj);
+    }
+
     // allocate copy of obj
     shared_ptr(const T& obj)
         : impl(nullptr)
@@ -100,18 +112,6 @@ public:
         alloc_traits::construct(d_allocator, ptr);
 
         util::raii::relax(obj_holder, cb_holder);
-    }
-
-    // Take ownership of obj
-    // Argument is pointer to derived object
-    template<typename D>
-    shared_ptr(const D* obj)
-        : impl(nullptr)
-    {
-        static_assert(std::is_base_of<T, D>::value);
-
-        if(obj != nullptr)
-            impl = new detail::shared_ptr_impl(obj);
     }
     
     shared_ptr(const shared_ptr& other)
