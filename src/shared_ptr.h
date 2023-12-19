@@ -143,13 +143,6 @@ public:
         release_ptr();
     }
 
-    void release_ptr() {
-        if(impl != nullptr) {
-            impl->remove_owner();
-            impl = nullptr;
-        }
-    }
-
     T&
     operator*() {
         assert(impl != nullptr);
@@ -201,6 +194,20 @@ public:
     }
 
 private:
+
+    void release_ptr() {
+        if(impl != nullptr) {
+            int stored_val = impl->ref_count.load();
+            while(!impl->ref_count.compare_exchange_weak(stored_val, stored_val - 1))
+                ;
+
+            if(stored_val - 1 == 0) {
+                delete impl; /*delete control block*/
+            }
+
+            impl = nullptr;
+        }
+    }
 
     detail::shared_ptr_impl<T, Allocator>* impl;
     Allocator allocator;
