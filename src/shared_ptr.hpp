@@ -5,7 +5,7 @@
 #include <cassert>
 
 #include "checked_delete.hpp"
-#include "raii.h"
+#include "scoped_ptr.hpp"
 
 namespace memory {
 

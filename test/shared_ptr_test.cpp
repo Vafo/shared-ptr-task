@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "shared_ptr.h"
+#include "shared_ptr.hpp"
 #include <vector>
 
 namespace memory {
