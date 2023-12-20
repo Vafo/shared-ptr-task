@@ -24,7 +24,10 @@ template<
 >
 class shared_ptr_impl {
 private: /*explicit*/
-    shared_ptr_impl(T *ptr): obj(ptr), ref_count(1) {}
+    shared_ptr_impl(T *ptr)
+    : obj(ptr)
+    , ref_count(1)
+    {}
 
     ~shared_ptr_impl() {
         using alloc_traits = std::allocator_traits< Allocator >; 
@@ -33,16 +36,6 @@ private: /*explicit*/
 
         alloc_traits::destroy(allocator, obj);
         alloc_traits::deallocate(allocator, obj, 1);
-    }
-
-    void remove_owner() {
-        int stored_val = ref_count.load();
-        while(!ref_count.compare_exchange_weak(stored_val, stored_val - 1))
-            ;
-
-        if(stored_val - 1 == 0) {
-            delete this; /*delete control block*/
-        }
     }
 
     friend class shared_ptr<T, Allocator>; /*the only user*/
@@ -62,8 +55,7 @@ template<
 class shared_ptr {
 public:
     shared_ptr(T *ptr = nullptr)
-        : impl(nullptr)
-    {
+    : impl(nullptr) {
         if(ptr != nullptr)
             impl = new detail::shared_ptr_impl(ptr);
     }
@@ -72,8 +64,7 @@ public:
     // Argument is pointer to derived object
     template<typename D>
     shared_ptr(const D* obj)
-        : impl(nullptr)
-    {
+    : impl(nullptr) {
         static_assert(std::is_base_of<T, D>::value);
 
         if(obj != nullptr)
@@ -82,8 +73,7 @@ public:
 
     // allocate copy of obj
     shared_ptr(const T& obj)
-        : impl(nullptr)
-    {
+    : impl(nullptr) {
         using alloc_traits = std::allocator_traits< Allocator >; 
         // TODO: Reduce to 1 allocator call
         T *ptr = alloc_traits::allocate(allocator, 1);
@@ -94,7 +84,7 @@ public:
 
         alloc_traits::construct(allocator, ptr, obj);
 
-        relax(obj_holder, cb_holder);
+        scoped_relax(obj_holder, cb_holder);
     }
 
     // allocate copy of obj
@@ -107,8 +97,7 @@ public:
         const D& obj,
         D_Allocator d_allocator = D_Allocator()
     )
-        : impl(nullptr)
-    {
+    : impl(nullptr) {
         static_assert(std::is_base_of<T, D>::value);
         using alloc_traits = std::allocator_traits< std::allocator<D> >; 
 
@@ -121,12 +110,11 @@ public:
 
         alloc_traits::construct(d_allocator, ptr);
 
-        relax(obj_holder, cb_holder);
+        scoped_relax(obj_holder, cb_holder);
     }
     
     shared_ptr(const shared_ptr& other)
-        : impl(other.impl)
-    {
+    : impl(other.impl) {
         if(impl != nullptr) {
             ++impl->ref_count;
         }
@@ -168,12 +156,8 @@ public:
     }
 
     bool operator==(const shared_ptr &b) const {
-        if(impl == nullptr || b.impl == nullptr) {
-            if(impl == nullptr && b.impl == nullptr)
-                return true;
-
-            return false;
-        }
+        if(impl == nullptr || b.impl == nullptr)
+            return impl == nullptr && b.impl == nullptr;
 
         return impl->obj == b.impl->obj;
     }
