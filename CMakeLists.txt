@@ -9,7 +9,6 @@ target_compile_features(shared_ptr_compiler_flags INTERFACE cxx_std_20)
 
 # Include src folders
 add_subdirectory(src)
-add_subdirectory(util)
 add_subdirectory(test)
 
 include(FetchContent)
