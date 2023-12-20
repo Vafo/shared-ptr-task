@@ -7,38 +7,47 @@ template<
 class scoped_ptr {
 public:
     scoped_ptr(T* in_ptr, const Allocator& in_alloc = Allocator())
-        : ptr(in_ptr)
+        : m_ptr(in_ptr)
         , allocator(in_alloc)
     { }
 
-    void relax() {
-        ptr = nullptr;
+    scoped_ptr(const scoped_ptr& other) = delete;
+
+    scoped_ptr(scoped_ptr&& other)
+    : m_ptr(other.m_ptr) {
+        other.relax();
     }
 
     ~scoped_ptr() {
         using alloc_traits = std::allocator_traits< Allocator >; 
 
-        checked_delete(ptr);
-        if(ptr != nullptr)
-            alloc_traits::deallocate(allocator, ptr, 1);
+        checked_delete(m_ptr);
+        if(m_ptr != nullptr)
+            alloc_traits::deallocate(allocator, m_ptr, 1);
+    }
+    
+    scoped_ptr& operator=(const scoped_ptr& other) = delete;
+
+    void relax() {
+        m_ptr = nullptr;
     }
 
 private:
-    T* ptr;
+    T* m_ptr;
     Allocator allocator;
 }; // class constructor
 
 
-inline void relax() 
+inline void scoped_relax() 
 { }
 
 template<
     typename Arg1,
     typename ...Args
 >
-inline void relax(Arg1& arg1, Args&... args) {
+inline void scoped_relax(Arg1& arg1, Args&... args) {
     arg1.relax();
-    relax(args...);
+    scoped_relax(args...);
 }
 
 

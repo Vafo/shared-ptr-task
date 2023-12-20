@@ -136,7 +136,7 @@ void leak_safe_constructor(bad_obj* ptr, std::allocator<bad_obj>& bad_alloc) {
     scoped_ptr holder(ptr, bad_alloc);
     std::allocator_traits< allocator_t >::construct(bad_alloc, ptr); // throws
 
-    relax(holder);
+    scoped_relax(holder);
 }
 
 TEST_CASE("raii::ptr_holder: bad constructor", "[ptr_holder]") {
