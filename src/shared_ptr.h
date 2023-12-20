@@ -28,8 +28,8 @@ private: /*explicit*/
 
     ~shared_ptr_impl() {
         using alloc_traits = std::allocator_traits< Allocator >; 
-        // checked delete
-        util::check_if_deletable(obj);        
+        // checked delete (https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Checked_delete)
+        checked_delete(obj);
 
         alloc_traits::destroy(allocator, obj);
         alloc_traits::deallocate(allocator, obj, 1);
@@ -87,14 +87,14 @@ public:
         using alloc_traits = std::allocator_traits< Allocator >; 
         // TODO: Reduce to 1 allocator call
         T *ptr = alloc_traits::allocate(allocator, 1);
-        util::raii::ptr_holder obj_holder(ptr, allocator); /*if cb alloc fails*/
+        scoped_ptr obj_holder(ptr, allocator); /*if cb alloc fails*/
 
         impl = new detail::shared_ptr_impl(ptr); 
-        util::raii::ptr_holder cb_holder(impl); /*if constructor fails*/
+        scoped_ptr cb_holder(impl); /*if constructor fails*/
 
         alloc_traits::construct(allocator, ptr, obj);
 
-        util::raii::relax(obj_holder, cb_holder);
+        relax(obj_holder, cb_holder);
     }
 
     // allocate copy of obj
@@ -114,14 +114,14 @@ public:
 
         // TODO: Exception safety anybody ?
         D *ptr = alloc_traits::allocate(d_allocator, 1);
-        util::raii::ptr_holder obj_holder(ptr, d_allocator); /*if cb alloc fails*/
+        scoped_ptr obj_holder(ptr, d_allocator); /*if cb alloc fails*/
         
         impl = new detail::shared_ptr_impl(ptr);
-        util::raii::ptr_holder cb_holder(impl); /*if constructor fails*/
+        scoped_ptr cb_holder(impl); /*if constructor fails*/
 
         alloc_traits::construct(d_allocator, ptr);
 
-        util::raii::relax(obj_holder, cb_holder);
+        relax(obj_holder, cb_holder);
     }
     
     shared_ptr(const shared_ptr& other)

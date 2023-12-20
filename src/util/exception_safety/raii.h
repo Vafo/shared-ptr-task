@@ -1,14 +1,12 @@
-namespace memory::util {
-
-namespace raii {
+namespace memory {
 
 template<
     typename T,
     typename Allocator = std::allocator<T>
 >
-class ptr_holder {
+class scoped_ptr {
 public:
-    ptr_holder(T* in_ptr, const Allocator& in_alloc = Allocator())
+    scoped_ptr(T* in_ptr, const Allocator& in_alloc = Allocator())
         : ptr(in_ptr)
         , allocator(in_alloc)
     { }
@@ -17,10 +15,10 @@ public:
         ptr = nullptr;
     }
 
-    ~ptr_holder() {
+    ~scoped_ptr() {
         using alloc_traits = std::allocator_traits< Allocator >; 
 
-        check_if_deletable(ptr);
+        checked_delete(ptr);
         if(ptr != nullptr)
             alloc_traits::deallocate(allocator, ptr, 1);
     }
@@ -44,7 +42,4 @@ inline void relax(Arg1& arg1, Args&... args) {
 }
 
 
-
-} // namespace raii
-
-} // namespace memory::util
+} // namespace memory
