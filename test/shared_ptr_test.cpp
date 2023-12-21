@@ -8,26 +8,26 @@
 namespace memory {
 
 TEST_CASE("shared_ptr: construct shared_ptr", "[shared_ptr][normal]") {
-    shared_ptr<int> iptr(5);
+    shared_ptr<int> iptr = make_shared<int>(5);
 
     REQUIRE(*iptr == 5);
 
     *iptr = 123;
     REQUIRE(*iptr == 123);
     // Creates new shared_ptr (BAD PRACTICE, delegate conversion to shared_ptr to make_shared )
-    iptr = 123;
+    iptr = make_shared<int>(123);
     REQUIRE(*iptr == 123);
 }
 
 TEST_CASE("shared_ptr: copy ptr", "[shared_ptr][normal]") {
     // Conversion is not supported :-(
-    shared_ptr<std::string> sptr = std::string("Hello World!");
+    shared_ptr<std::string> sptr = make_shared<std::string>("Hello World!");
     shared_ptr<std::string> sptr_copy = sptr;
     // They point to same object
     REQUIRE( sptr_copy == sptr );
     REQUIRE( *sptr_copy == *sptr );
 
-    shared_ptr<std::string> sptr_other = std::string("Hello World!");
+    shared_ptr<std::string> sptr_other = make_shared<std::string>("Hello World!");
 
     REQUIRE( sptr_copy != sptr_other );
     REQUIRE( *sptr_copy == *sptr_other );
@@ -38,7 +38,7 @@ TEST_CASE("shared_ptr: vector of shared_ptr", "[shared_ptr][normal]") {
     std::vector<shared_ptr<int>> ptrvec;
     for(int i = 0; i < iterations; ++i)
         // Conversion constructor is called
-        ptrvec.push_back(i);
+        ptrvec.push_back( make_shared<int>(i) );
 
     for(int i = 0; i < iterations; ++i)
         REQUIRE(*ptrvec[i] == i);
@@ -68,7 +68,7 @@ TEST_CASE("shared_ptr: count const and dest of class", "[shared_ptr][normal]") {
         // check if precondition is valid (independent from code under test)
         assert(counter_t::counter == 0);
         for(int i = 0; i < iterations; ++i)
-            shared_ptr<counter_t> count_ptr = counter_t();
+            shared_ptr<counter_t> count_ptr = make_shared<counter_t>();
         REQUIRE(counter_t::counter == 0);
     }
 
@@ -77,17 +77,17 @@ TEST_CASE("shared_ptr: count const and dest of class", "[shared_ptr][normal]") {
         {
             std::vector<shared_ptr<counter_t>> count_vec;
             for(int i = 0; i < iterations; ++i)
-                count_vec.push_back(counter_t());
+                count_vec.push_back( make_shared<counter_t>() );
             REQUIRE(counter_t::counter == iterations);
         }
-            REQUIRE(counter_t::counter == 0);
+        REQUIRE(counter_t::counter == 0);
     }
 
 }
 
 TEST_CASE("shared_ptr: copy-and-swap test", "[shared_ptr][normal][assignment]") {
     const int iterations = 10;
-    shared_ptr<std::string> ptr = std::string("Heya!");
+    shared_ptr<std::string> ptr = make_shared<std::string>("Heya!");
 
     shared_ptr<std::string> ptr_copy;
     for(int i = 0; i < iterations; ++i) {
@@ -106,7 +106,7 @@ TEST_CASE("shared_ptr: checked delete", "[shared_ptr][normal]") {
 
 TEST_CASE("shared_ptr: ptr reusage") {
     const int test_val = 10;
-    shared_ptr<int> keka(test_val);
+    shared_ptr<int> keka = make_shared<int>(test_val);
 
     {
         shared_ptr<int> other_ptr = keka;

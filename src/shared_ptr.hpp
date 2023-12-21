@@ -23,7 +23,12 @@ template<
     typename Allocator = std::allocator<T>
 >
 class shared_ptr_impl {
-private: /*explicit*/
+public: /*public for allocator*/
+
+    typedef 
+        std::allocator_traits<Allocator>::template rebind_alloc<shared_ptr_impl>
+        allocator_type;
+
     shared_ptr_impl(T *ptr)
     : obj(ptr)
     , ref_count(1)
@@ -34,14 +39,15 @@ private: /*explicit*/
         // checked delete (https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Checked_delete)
         checked_delete(obj);
 
+        Allocator allocator;
         alloc_traits::destroy(allocator, obj);
         alloc_traits::deallocate(allocator, obj, 1);
     }
 
     friend class shared_ptr<T, Allocator>; /*the only user*/
 
+private:
     T *obj;
-    Allocator allocator;
     std::atomic<int> ref_count;
 }; // class shared_ptr_impl
 
@@ -56,8 +62,20 @@ class shared_ptr {
 public:
     shared_ptr(T *ptr = nullptr)
     : impl(nullptr) {
-        if(ptr != nullptr)
-            impl = new detail::shared_ptr_impl(ptr);
+        if(ptr != nullptr) {
+            using cb_type = detail::shared_ptr_impl<T, Allocator>;
+            using cb_alloc_traits = std::allocator_traits< typename cb_type::allocator_type >;
+
+            typename cb_type::allocator_type cb_alloc;
+
+            impl = cb_alloc_traits::allocate(cb_alloc, 1);
+            scoped_ptr cb_guard(impl); /*if constructor fails*/
+
+            cb_alloc_traits::construct(cb_alloc, impl, ptr);
+
+            scoped_relax(cb_guard);
+        }
+            
     }
 
     // Take ownership of obj
@@ -67,54 +85,32 @@ public:
     : impl(nullptr) {
         static_assert(std::is_base_of<T, D>::value);
 
-        if(obj != nullptr)
-            impl = new detail::shared_ptr_impl(obj);
+        if(obj != nullptr) {
+            using cb_type = detail::shared_ptr_impl<T, Allocator>;
+            using cb_alloc_traits = std::allocator_traits< typename cb_type::allocator_type >;
+
+            typename cb_type::allocator_type cb_alloc;
+
+            impl = cb_alloc_traits::allocate(cb_alloc, 1);
+            scoped_ptr cb_guard(impl); /*if constructor fails*/
+
+            cb_alloc_traits::construct(cb_alloc, impl, obj);
+
+            scoped_relax(cb_guard);
+        }
     }
 
-    // allocate copy of obj
-    shared_ptr(const T& obj)
-    : impl(nullptr) {
-        using alloc_traits = std::allocator_traits< Allocator >; 
-        // TODO: Reduce to 1 allocator call
-        T *ptr = alloc_traits::allocate(allocator, 1);
-        scoped_ptr obj_holder(ptr, allocator); /*if cb alloc fails*/
-
-        impl = new detail::shared_ptr_impl(ptr); 
-        scoped_ptr cb_holder(impl); /*if constructor fails*/
-
-        alloc_traits::construct(allocator, ptr, obj);
-
-        scoped_relax(obj_holder, cb_holder);
-    }
-
-    // allocate copy of obj
-    // Argument is derived object
-    template<
-        typename D,
-        typename D_Allocator = std::allocator<D>
-    >
-    shared_ptr(
-        const D& obj,
-        D_Allocator d_allocator = D_Allocator()
-    )
-    : impl(nullptr) {
-        static_assert(std::is_base_of<T, D>::value);
-        using alloc_traits = std::allocator_traits< std::allocator<D> >; 
-
-        // TODO: Exception safety anybody ?
-        D *ptr = alloc_traits::allocate(d_allocator, 1);
-        scoped_ptr obj_holder(ptr, d_allocator); /*if cb alloc fails*/
-        
-        impl = new detail::shared_ptr_impl(ptr);
-        scoped_ptr cb_holder(impl); /*if constructor fails*/
-
-        alloc_traits::construct(d_allocator, ptr);
-
-        scoped_relax(obj_holder, cb_holder);
-    }
-    
-    shared_ptr(const shared_ptr& other)
+    shared_ptr(const shared_ptr<T>& other)
     : impl(other.impl) {
+        if(impl != nullptr) {
+            ++impl->ref_count;
+        }
+    }
+
+    template<typename D>
+    shared_ptr(const shared_ptr<D>& other)
+    : impl(other.impl) {
+        static_assert(std::is_base_of<T, D>::value);
         if(impl != nullptr) {
             ++impl->ref_count;
         }
@@ -170,7 +166,6 @@ public:
         using std::swap;
 
         swap(impl, other.impl);
-        swap(allocator, other.allocator);
     }
 
     friend void swap(shared_ptr &a, shared_ptr &b) {
@@ -185,8 +180,15 @@ private:
             while(!impl->ref_count.compare_exchange_weak(stored_val, stored_val - 1))
                 ;
 
+            // TODO: CHANGE TO SUPPORT ALLOCATOR
             if(stored_val - 1 == 0) {
-                delete impl; /*delete control block*/
+                using cb_type = detail::shared_ptr_impl<T, Allocator>;
+                using cb_alloc_traits = std::allocator_traits< typename cb_type::allocator_type >;
+
+                typename cb_type::allocator_type cb_alloc;
+
+                cb_alloc_traits::destroy(cb_alloc, impl);
+                cb_alloc_traits::deallocate(cb_alloc, impl, 1);
             }
 
             impl = nullptr;
@@ -194,8 +196,24 @@ private:
     }
 
     detail::shared_ptr_impl<T, Allocator>* impl;
-    Allocator allocator;
 };
+
+
+
+template<typename T, typename Allocator = std::allocator<T>, typename ...Args>
+shared_ptr<T, Allocator> make_shared(Args... args) {
+    using obj_alloc_traits = std::allocator_traits< Allocator >;
+    
+    // TODO: Reduce to inplace cb & obj allocator call
+    Allocator obj_alloc;
+    T *ptr = obj_alloc_traits::allocate(obj_alloc, 1);
+    scoped_ptr obj_guard(ptr, obj_alloc); /*if constructor fails*/
+
+    obj_alloc_traits::construct(obj_alloc, ptr, args...);
+    
+    scoped_relax(obj_guard);
+    return shared_ptr<T, Allocator>(ptr);
+}
 
 } // namespace memory
 
