@@ -15,29 +15,17 @@ template<
 >
 class shared_ptr {
 public:
-    shared_ptr(T *ptr = nullptr)
-    : impl(nullptr) {
-        if(ptr != nullptr) {
-            using cb_type = detail::shared_ptr_impl<T, Allocator>;
-            using cb_alloc_traits = std::allocator_traits< typename cb_type::allocator_type >;
 
-            typename cb_type::allocator_type cb_alloc;
-
-            impl = cb_alloc_traits::allocate(cb_alloc, 1);
-            scoped_ptr cb_guard(impl); /*if constructor fails*/
-
-            cb_alloc_traits::construct(cb_alloc, impl, ptr);
-
-            scoped_relax(cb_guard);
-        }
-    }
+    shared_ptr()
+    : impl(nullptr)
+    { }
 
     // Take ownership of obj
     // Argument is pointer to derived object
     template<typename D>
-    shared_ptr(const D* obj)
+    shared_ptr(D* obj)
     : impl(nullptr) {
-        static_assert(std::is_base_of<T, D>::value);
+        static_assert(std::is_base_of<T, D>::value || std::is_same<T, D>::value);
 
         if(obj != nullptr) {
             using cb_type = detail::shared_ptr_impl<T, Allocator>;
@@ -64,7 +52,7 @@ public:
     template<typename D>
     shared_ptr(const shared_ptr<D>& other)
     : impl(other.impl) {
-        static_assert(std::is_base_of<T, D>::value);
+        static_assert(std::is_base_of<T, D>::value || std::is_same<T, D>::value);
         if(impl != nullptr) {
             ++impl->ref_count;
         }
