@@ -22,11 +22,8 @@ public:
 
     // Take ownership of obj
     // Argument is pointer to derived object
-    template<typename D>
-    shared_ptr(D* obj)
+    shared_ptr(T* obj)
     : impl(nullptr) {
-        static_assert(std::is_base_of<T, D>::value || std::is_same<T, D>::value);
-
         if(obj != nullptr) {
             using cb_type = detail::shared_ptr_impl<T, Allocator>;
             using cb_alloc_traits = std::allocator_traits< typename cb_type::allocator_type >;
@@ -42,17 +39,8 @@ public:
         }
     }
 
-    shared_ptr(const shared_ptr<T>& other)
+    shared_ptr(const shared_ptr& other)
     : impl(other.impl) {
-        if(impl != nullptr) {
-            ++impl->ref_count;
-        }
-    }
-
-    template<typename D>
-    shared_ptr(const shared_ptr<D>& other)
-    : impl(other.impl) {
-        static_assert(std::is_base_of<T, D>::value);
         if(impl != nullptr) {
             ++impl->ref_count;
         }
@@ -64,15 +52,6 @@ public:
 
     shared_ptr&
     operator= (shared_ptr other) {
-        swap(other); // copy and swap
-        
-        return *this;
-    }
-    
-    template<typename D>
-    shared_ptr&
-    operator= (shared_ptr<D> other) {
-        static_assert(std::is_base_of<T, D>::value);
         swap(other); // copy and swap
         
         return *this;
@@ -102,24 +81,24 @@ public:
         return impl->obj;
     }
 
-    bool operator==(const shared_ptr &b) const {
+    bool operator==(const shared_ptr& b) const {
         if(impl == nullptr || b.impl == nullptr)
             return impl == nullptr && b.impl == nullptr;
 
         return impl->obj == b.impl->obj;
     }
 
-    bool operator!=(const shared_ptr &b) const {
+    bool operator!=(const shared_ptr& b) const {
         return !(*this == b);
     }
 
-    void swap(shared_ptr &other) {
+    void swap(shared_ptr& other) {
         using std::swap;
 
         swap(impl, other.impl);
     }
 
-    friend void swap(shared_ptr &a, shared_ptr &b) {
+    friend void swap(shared_ptr& a, shared_ptr& b) {
         a.swap(b);
     }
 

@@ -104,7 +104,7 @@ TEST_CASE("shared_ptr: checked delete", "[shared_ptr][normal]") {
     // shared_ptr<empty_t> ptr;
 }
 
-TEST_CASE("shared_ptr: ptr reusage") {
+TEST_CASE("shared_ptr: ptr reusage", "[shared_ptr]") {
     const int test_val = 10;
     shared_ptr<int> keka = make_shared<int>(test_val);
 
@@ -121,6 +121,41 @@ TEST_CASE("shared_ptr: ptr reusage") {
     keka = shared_ptr<int>();
     REQUIRE(keka == shared_ptr<int>());
 }
+
+/* Conversion of shared pointer Derived to Base is NOT SUPPORTED
+
+class base_t {
+public:
+    static const int val = 0;
+
+    virtual int get_val()
+    { return val; }
+    
+    virtual ~base_t()
+    {}
+};
+
+class derived_t: public base_t {
+public:
+    static const int val = 1;
+
+    virtual int get_val()
+    { return val; }
+
+    virtual ~derived_t()
+    {}
+};
+
+TEST_CASE("shared_ptr: ptr to derived object ", "[shared_ptr]") {
+    shared_ptr<base_t> based_ptr = make_shared<base_t>();
+    shared_ptr<derived_t> derived_ptr = make_shared<derived_t>();
+
+    REQUIRE(based_ptr->get_val() == base_t::val);
+    based_ptr = derived_ptr;
+    REQUIRE(based_ptr->get_val() == derived_t::val);
+}
+
+*/
 
 struct bad_obj {
     bad_obj() {
