@@ -52,10 +52,14 @@ public:
     template<typename D>
     shared_ptr(const shared_ptr<D>& other)
     : impl(other.impl) {
-        static_assert(std::is_base_of<T, D>::value || std::is_same<T, D>::value);
+        static_assert(std::is_base_of<T, D>::value);
         if(impl != nullptr) {
             ++impl->ref_count;
         }
+    }
+
+    ~shared_ptr() {
+        release_ptr();    
     }
 
     shared_ptr&
@@ -64,9 +68,14 @@ public:
         
         return *this;
     }
-
-    ~shared_ptr() {
-        release_ptr();
+    
+    template<typename D>
+    shared_ptr&
+    operator= (shared_ptr<D> other) {
+        static_assert(std::is_base_of<T, D>::value);
+        swap(other); // copy and swap
+        
+        return *this;
     }
 
     T&

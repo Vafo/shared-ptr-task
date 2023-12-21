@@ -30,6 +30,8 @@ public: /*public for allocator*/
     , ref_count(1)
     {}
 
+    shared_ptr_impl(const shared_ptr_impl& other) = delete;
+
     ~shared_ptr_impl() {
         using alloc_traits = std::allocator_traits< Allocator >; 
         // checked delete (https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Checked_delete)
@@ -39,6 +41,8 @@ public: /*public for allocator*/
         alloc_traits::destroy(allocator, obj);
         alloc_traits::deallocate(allocator, obj, 1);
     }
+
+    shared_ptr_impl& operator= (const shared_ptr_impl& other) = delete;
 
     friend class shared_ptr<T, Allocator>; /*the only user*/
 
