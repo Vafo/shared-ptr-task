@@ -1,7 +1,0 @@
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-add_library(checked_delete_impl INTERFACE)
-
-target_include_directories(checked_delete_impl INTERFACE .)
-
-target_link_libraries(checked_delete_impl INTERFACE shared_ptr_compiler_flags)
