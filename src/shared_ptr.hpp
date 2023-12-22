@@ -160,14 +160,14 @@ public:
     { ++ref_count; }
 
     void decr_ref() {
-            int stored_val = ref_count.load();
-            while(!ref_count.compare_exchange_weak(stored_val, stored_val - 1))
-                ;
+        int stored_val = ref_count.load();
+        while(!ref_count.compare_exchange_weak(stored_val, stored_val - 1))
+            ;
 
-            // TODO: CHANGE TO SUPPORT ALLOCATOR
-            if(stored_val - 1 == 0) {
-                destroy();
-            }
+        // TODO: CHANGE TO SUPPORT ALLOCATOR
+        if(stored_val - 1 == 0) {
+            destroy();
+        }
     }
 
     virtual void* get_ptr() = 0;
@@ -224,12 +224,54 @@ private:
     const Allocator& m_alloc_ref;
 }; // class sp_cb_separate
 
-template<typename T>
-class sp_cb_inplace {
+template<typename T, typename Allocator>
+class sp_cb_inplace: public sp_cb_base {
+public:
 
+    typedef 
+        std::allocator_traits<Allocator>::template rebind_alloc<sp_cb_inplace>
+        allocator_type;
 
-    virtual ~sp_cb_inplace() {}
-};
+    template<typename ...Args>
+    sp_cb_inplace(const Allocator& alloc_ref, Args... args)
+    : sp_cb_base()
+    , m_alloc_ref(alloc_ref) { 
+        using obj_alloc_traits = std::allocator_traits<Allocator>;
+        Allocator obj_alloc(m_alloc_ref);
+        
+        obj_alloc_traits::construct(obj_alloc, get_obj_ptr(), args...);
+    }
+
+    virtual ~sp_cb_inplace() {
+        using obj_alloc_traits = std::allocator_traits<Allocator>;
+        Allocator obj_alloc(m_alloc_ref);
+
+        obj_alloc_traits::destroy(obj_alloc, get_obj_ptr());
+    }
+
+    virtual void* get_ptr()
+    { return reinterpret_cast<void*>(get_obj_ptr()); };
+
+    virtual void destroy() { 
+        using cb_alloc_traits = std::allocator_traits<allocator_type>;
+        allocator_type cb_alloc; 
+
+        cb_alloc_traits::destroy(cb_alloc, this);
+        cb_alloc_traits::deallocate(cb_alloc, this, 1);
+    };
+
+    sp_cb_inplace(const sp_cb_inplace& other) = delete;
+    sp_cb_inplace& operator=(const sp_cb_inplace& other) = delete;
+
+private:
+
+    T* get_obj_ptr()
+    { return reinterpret_cast<T*>(&m_obj_mem); }
+
+    std::aligned_storage_t<sizeof(T), alignof(T)> m_obj_mem;
+    const Allocator& m_alloc_ref;
+
+}; // class sp_cb_inplace
 
 struct sp_cb_inplace_tag_t {};
 constexpr sp_cb_inplace_tag_t sp_cb_inplace_tag;
@@ -249,12 +291,12 @@ public:
     template<typename T>
     explicit
     sp_refcount(T* sep_ptr)
-    : sp_refcount(sep_ptr, std::allocator<T>())
+    : sp_refcount(std::allocator<T>(), sep_ptr)
     {}
 
     template<typename T, typename Allocator>
     explicit
-    sp_refcount(T* sep_ptr, Allocator alloc)
+    sp_refcount(Allocator alloc, T* sep_ptr)
     : m_cb_ptr(nullptr) {
         using cb_t = sp_cb_separate<T, Allocator>;
         using cb_alloc_t = typename cb_t::allocator_type;
@@ -266,6 +308,21 @@ public:
         alloc_traits::construct(cb_alloc, cb_ptr, /*args*/ sep_ptr, alloc);
 
         m_cb_ptr = cb_ptr;
+    }
+
+    template<typename T, typename Allocator, typename ...Args>
+    sp_refcount(T*& out_ptr, Allocator obj_alloc, Args... args) {
+        using cb_t = sp_cb_inplace<T, Allocator>;
+        using cb_alloc_t = typename cb_t::allocator_type;
+        using alloc_traits = std::allocator_traits< cb_alloc_t >;
+        cb_alloc_t cb_alloc;
+
+        cb_t* cb_ptr = alloc_traits::allocate(cb_alloc, 1);
+        // TODO: exception safety
+        alloc_traits::construct(cb_alloc, cb_ptr, /*args*/ obj_alloc, args...);
+
+        m_cb_ptr = cb_ptr;
+        out_ptr = reinterpret_cast<T*>(m_cb_ptr->get_ptr());
     }
 
     ~sp_refcount() {
@@ -308,10 +365,10 @@ public:
     : m_refcount()
     {}
 
-    // TODO: Is assignable?
-    shared_ptr(const shared_ptr& other)
-    : m_refcount(other.m_refcount)
-    {}
+    // // TODO: Is assignable?
+    // shared_ptr(const shared_ptr& other)
+    // : m_refcount(other.m_refcount)
+    // {}
 
     template<
         typename D,
@@ -319,6 +376,7 @@ public:
     >
     shared_ptr(const shared_ptr<D>& other)
     : m_refcount(other.m_refcount)
+    , m_ptr(other.m_ptr)
     {}
 
     template<
@@ -327,38 +385,33 @@ public:
     >
     shared_ptr(D* ptr)
     : m_refcount(ptr)
+    , m_ptr(ptr)
     {}
 
-    // TODO: Is assignable?
-    template<
-        typename D,
-        typename = std::enable_if< std::is_convertible<D*, T*>::value >::type
-    >
     shared_ptr&
-    operator= (shared_ptr<D>& other) {
-        shared_ptr(other).swap(*this);
-        
+    operator= (shared_ptr other) {
+        swap(other);
         return *this;
     }
 
     T&
     operator*() {
-        return *m_refcount.get<T>();
+        return *m_ptr;
     }
 
     const T&
     operator*() const {
-        return *m_refcount.get<T>();
+        return *m_ptr;
     }
 
     T*
     operator->() {
-        return m_refcount.get<T>();
+        return m_ptr;
     }
 
     const T*
     operator->() const {
-        return m_refcount.get<T>();
+        return m_ptr;
     }
 
     // template<typename D>
@@ -378,6 +431,7 @@ public:
         using std::swap;
 
         swap(m_refcount, other.m_refcount);
+        swap(m_ptr, other.m_ptr);
     }
 
     template<
@@ -392,27 +446,22 @@ public:
     friend class shared_ptr;
 
 private:
+
+    template<typename Allocator, typename ...Args>
+    shared_ptr(sp_cb_inplace_tag_t, Allocator obj_alloc, Args... args)
+    : m_refcount(m_ptr, obj_alloc, args...)
+    {}
+
+    template<typename D, typename Allocator, typename ...Args>
+    friend shared_ptr<D> allocate_shared(Allocator obj_alloc, Args... args);
+
+    T* m_ptr;
     sp_refcount m_refcount;
-
 }; // class shared_ptr
-
-// template<typename T, typename ...Args>
-// shared_ptr<T> make_shared(Args... args) {
-
-// }
 
 template<typename T, typename Allocator, typename ...Args>
 shared_ptr<T> allocate_shared(Allocator obj_alloc, Args... args) {
-    using obj_alloc_traits = std::allocator_traits< Allocator >;
-    
-    // TODO: Reduce to inplace cb & obj allocator call
-    T *ptr = obj_alloc_traits::allocate(obj_alloc, 1);
-    scoped_ptr obj_guard(ptr, obj_alloc); /*if constructor fails*/
-
-    obj_alloc_traits::construct(obj_alloc, ptr, args...);
-    
-    scoped_relax(obj_guard);
-    return shared_ptr<T>(ptr);
+    return shared_ptr<T>(sp_cb_inplace_tag, obj_alloc, args...);
 }
 
 template<typename T, typename ...Args>
