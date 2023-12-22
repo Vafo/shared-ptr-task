@@ -145,6 +145,10 @@ public:
     {}
 };
 
+class unrelated_t {
+    int empty;
+};
+
 TEST_CASE("shared_ptr: ptr to derived object ", "[shared_ptr]") {
     shared_ptr<base_t> based_ptr = make_shared<base_t>();
     shared_ptr<derived_t> derived_ptr = make_shared<derived_t>();
@@ -152,6 +156,15 @@ TEST_CASE("shared_ptr: ptr to derived object ", "[shared_ptr]") {
     REQUIRE(based_ptr->get_val() == base_t::val);
     based_ptr = derived_ptr;
     REQUIRE(based_ptr->get_val() == derived_t::val);
+
+    SECTION("unrelated object ptr copy & assign") {
+        shared_ptr<unrelated_t> unrel_ptr = make_shared<unrelated_t>();
+
+        // unrel_ptr = based_ptr;
+        // shared_ptr<unrelated_t> unrel_tmp(based_ptr);
+        // shared_ptr<base_t> based_tmp(unrel_ptr);
+    }
+
 }
 
 
