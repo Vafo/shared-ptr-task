@@ -401,6 +401,25 @@ private:
 
 // }
 
+template<typename T, typename Allocator, typename ...Args>
+shared_ptr<T> allocate_shared(Allocator obj_alloc, Args... args) {
+    using obj_alloc_traits = std::allocator_traits< Allocator >;
+    
+    // TODO: Reduce to inplace cb & obj allocator call
+    T *ptr = obj_alloc_traits::allocate(obj_alloc, 1);
+    scoped_ptr obj_guard(ptr, obj_alloc); /*if constructor fails*/
+
+    obj_alloc_traits::construct(obj_alloc, ptr, args...);
+    
+    scoped_relax(obj_guard);
+    return shared_ptr<T>(ptr);
+}
+
+template<typename T, typename ...Args>
+shared_ptr<T> make_shared(Args... args) {
+    return new_impl::allocate_shared<T>( std::allocator<T>{}, args... );
+}
+
 
 } // namespace new_impl
 

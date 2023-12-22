@@ -6,7 +6,7 @@ template<
 >
 class scoped_ptr {
 public:
-    scoped_ptr(T* in_ptr, const Allocator& in_alloc = Allocator())
+    scoped_ptr(T* in_ptr, Allocator& in_alloc = Allocator())
         : m_ptr(in_ptr)
         , allocator(in_alloc)
     { }
@@ -34,7 +34,7 @@ public:
 
 private:
     T* m_ptr;
-    Allocator allocator;
+    Allocator& allocator;
 }; // class constructor
 
 

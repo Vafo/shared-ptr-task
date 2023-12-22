@@ -5,7 +5,7 @@
 #include "shared_ptr.hpp"
 #include <vector>
 
-namespace memory {
+namespace memory::new_impl {
 
 TEST_CASE("shared_ptr: construct shared_ptr", "[shared_ptr][normal]") {
     shared_ptr<int> iptr = make_shared<int>(5);
@@ -122,7 +122,6 @@ TEST_CASE("shared_ptr: ptr reusage", "[shared_ptr]") {
     REQUIRE(keka == shared_ptr<int>());
 }
 
-/* Conversion of shared pointer Derived to Base is NOT SUPPORTED
 
 class base_t {
 public:
@@ -155,7 +154,6 @@ TEST_CASE("shared_ptr: ptr to derived object ", "[shared_ptr]") {
     REQUIRE(based_ptr->get_val() == derived_t::val);
 }
 
-*/
 
 struct bad_obj {
     bad_obj() {
@@ -182,65 +180,65 @@ TEST_CASE("raii::ptr_holder: bad constructor", "[ptr_holder]") {
     REQUIRE_THROWS(leak_safe_constructor(ptr, bad_alloc));
 }
 
-namespace new_impl {
+// namespace new_impl {
 
-TEST_CASE("shared_ptr: construct shared_ptr", "[new_impl]") {
-    shared_ptr<int> iptr(new int(5));
+// TEST_CASE("shared_ptr: construct shared_ptr", "[new_impl]") {
+//     shared_ptr<int> iptr(new int(5));
 
-    REQUIRE(*iptr == 5);
+//     REQUIRE(*iptr == 5);
 
-    *iptr = 123;
-    REQUIRE(*iptr == 123);
-    // Creates new shared_ptr (BAD PRACTICE, delegate conversion to shared_ptr to make_shared )
-    iptr = shared_ptr<int>( new int(123) );
-    REQUIRE(*iptr == 123);
-}
+//     *iptr = 123;
+//     REQUIRE(*iptr == 123);
+//     // Creates new shared_ptr (BAD PRACTICE, delegate conversion to shared_ptr to make_shared )
+//     iptr = shared_ptr<int>( new int(123) );
+//     REQUIRE(*iptr == 123);
+// }
 
-TEST_CASE("shared_ptr: copy ptr", "[new_impl]") {
-    // Conversion is not supported :-(
-    shared_ptr<std::string> sptr(new std::string("Hello World!"));
-    shared_ptr<std::string> sptr_copy = sptr;
-    // They point to same object
-    REQUIRE( sptr_copy == sptr );
-    REQUIRE( *sptr_copy == *sptr );
+// TEST_CASE("shared_ptr: copy ptr", "[new_impl]") {
+//     // Conversion is not supported :-(
+//     shared_ptr<std::string> sptr(new std::string("Hello World!"));
+//     shared_ptr<std::string> sptr_copy = sptr;
+//     // They point to same object
+//     REQUIRE( sptr_copy == sptr );
+//     REQUIRE( *sptr_copy == *sptr );
 
-    shared_ptr<std::string> sptr_other(new std::string("Hello World!"));
+//     shared_ptr<std::string> sptr_other(new std::string("Hello World!"));
 
-    REQUIRE( sptr_copy != sptr_other );
-    REQUIRE( *sptr_copy == *sptr_other );
-}
+//     REQUIRE( sptr_copy != sptr_other );
+//     REQUIRE( *sptr_copy == *sptr_other );
+// }
 
-class base_t {
-public:
-    static const int val = 0;
+// class base_t {
+// public:
+//     static const int val = 0;
 
-    virtual int get_val()
-    { return val; }
+//     virtual int get_val()
+//     { return val; }
     
-    virtual ~base_t()
-    {}
-};
+//     virtual ~base_t()
+//     {}
+// };
 
-class derived_t: public base_t {
-public:
-    static const int val = 1;
+// class derived_t: public base_t {
+// public:
+//     static const int val = 1;
 
-    virtual int get_val()
-    { return val; }
+//     virtual int get_val()
+//     { return val; }
 
-    virtual ~derived_t()
-    {}
-};
+//     virtual ~derived_t()
+//     {}
+// };
 
-TEST_CASE("shared_ptr: ptr to derived object ", "[shared_ptr]") {
-    shared_ptr<base_t> based_ptr(new base_t());
-    shared_ptr<derived_t> derived_ptr(new derived_t());
+// TEST_CASE("shared_ptr: ptr to derived object ", "[shared_ptr]") {
+//     shared_ptr<base_t> based_ptr(new base_t());
+//     shared_ptr<derived_t> derived_ptr(new derived_t());
 
-    REQUIRE(based_ptr->get_val() == base_t::val);
-    based_ptr = derived_ptr;
-    REQUIRE(based_ptr->get_val() == derived_t::val);
-}
+//     REQUIRE(based_ptr->get_val() == base_t::val);
+//     based_ptr = derived_ptr;
+//     REQUIRE(based_ptr->get_val() == derived_t::val);
+// }
 
-} // namespace new_impl
+// } // namespace new_impl
 
 } // namespace postfix::util
