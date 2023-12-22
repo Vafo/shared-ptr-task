@@ -5,7 +5,7 @@
 #include "shared_ptr.hpp"
 #include <vector>
 
-namespace memory::new_impl {
+namespace memory {
 
 TEST_CASE("shared_ptr: construct shared_ptr", "[shared_ptr][normal]") {
     shared_ptr<int> iptr = make_shared<int>(5);
