@@ -122,7 +122,6 @@ TEST_CASE("shared_ptr: ptr reusage", "[shared_ptr]") {
     REQUIRE(keka == shared_ptr<int>());
 }
 
-/* Conversion of shared pointer Derived to Base is NOT SUPPORTED
 
 class base_t {
 public:
@@ -146,6 +145,10 @@ public:
     {}
 };
 
+class unrelated_t {
+    int empty;
+};
+
 TEST_CASE("shared_ptr: ptr to derived object ", "[shared_ptr]") {
     shared_ptr<base_t> based_ptr = make_shared<base_t>();
     shared_ptr<derived_t> derived_ptr = make_shared<derived_t>();
@@ -153,9 +156,17 @@ TEST_CASE("shared_ptr: ptr to derived object ", "[shared_ptr]") {
     REQUIRE(based_ptr->get_val() == base_t::val);
     based_ptr = derived_ptr;
     REQUIRE(based_ptr->get_val() == derived_t::val);
+
+    SECTION("unrelated object ptr copy & assign") {
+        shared_ptr<unrelated_t> unrel_ptr = make_shared<unrelated_t>();
+
+        // unrel_ptr = based_ptr;
+        // shared_ptr<unrelated_t> unrel_tmp(based_ptr);
+        // shared_ptr<base_t> based_tmp(unrel_ptr);
+    }
+
 }
 
-*/
 
 struct bad_obj {
     bad_obj() {
@@ -165,10 +176,12 @@ struct bad_obj {
     int big_data;
 };
 
-void leak_safe_constructor(bad_obj* ptr, std::allocator<bad_obj>& bad_alloc) {
+template<typename Allocator>
+void leak_safe_constructor(bad_obj* ptr) {
     using allocator_t = std::allocator<bad_obj>;
+    Allocator bad_alloc;
 
-    scoped_ptr holder(ptr, bad_alloc);
+    scoped_ptr holder(ptr);
     std::allocator_traits< allocator_t >::construct(bad_alloc, ptr); // throws
 
     scoped_relax(holder);
@@ -179,7 +192,7 @@ TEST_CASE("raii::ptr_holder: bad constructor", "[ptr_holder]") {
     allocator_t bad_alloc;
     bad_obj* ptr = std::allocator_traits< allocator_t >::allocate(bad_alloc, 1);
 
-    REQUIRE_THROWS(leak_safe_constructor(ptr, bad_alloc));
+    REQUIRE_THROWS(leak_safe_constructor<allocator_t>(ptr));
 }
 
 } // namespace postfix::util

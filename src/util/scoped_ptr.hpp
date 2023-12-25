@@ -1,3 +1,8 @@
+#ifndef SCOPED_PTR_H
+#define SCOPED_PTR_H
+
+#include "checked_delete.hpp"
+
 namespace memory {
 
 template<
@@ -6,9 +11,8 @@ template<
 >
 class scoped_ptr {
 public:
-    scoped_ptr(T* in_ptr, const Allocator& in_alloc = Allocator())
+    scoped_ptr(T* in_ptr)
         : m_ptr(in_ptr)
-        , allocator(in_alloc)
     { }
 
     scoped_ptr(const scoped_ptr& other) = delete;
@@ -22,8 +26,10 @@ public:
         using alloc_traits = std::allocator_traits< Allocator >; 
 
         checked_delete(m_ptr);
-        if(m_ptr != nullptr)
+        if(m_ptr != nullptr) {
+            Allocator allocator;
             alloc_traits::deallocate(allocator, m_ptr, 1);
+        }
     }
     
     scoped_ptr& operator=(const scoped_ptr& other) = delete;
@@ -34,7 +40,6 @@ public:
 
 private:
     T* m_ptr;
-    Allocator allocator;
 }; // class constructor
 
 
@@ -52,3 +57,5 @@ inline void scoped_relax(Arg1& arg1, Args&... args) {
 
 
 } // namespace memory
+
+#endif
