@@ -1,6 +1,7 @@
 #ifndef SHARED_PTR_DETAILS_H
 #define SHARED_PTR_DETAILS_H
 
+#include "scoped_ptr.hpp"
 #include "checked_delete.hpp"
 
 namespace memory::detail {
@@ -22,7 +23,6 @@ public:
         while(!ref_count.compare_exchange_weak(stored_val, stored_val - 1))
             ;
 
-        // TODO: CHANGE TO SUPPORT ALLOCATOR
         if(stored_val - 1 == 0) {
             destroy();
         }
@@ -163,9 +163,11 @@ public:
         cb_alloc_t cb_alloc;
 
         cb_t* cb_ptr = alloc_traits::allocate(cb_alloc, 1);
-        // TODO: exception safety
+        scoped_ptr<cb_t, cb_alloc_t> alloc_guard(cb_ptr);
+
         alloc_traits::construct(cb_alloc, cb_ptr, /*args*/ sep_ptr, alloc_ref);
 
+        alloc_guard.relax();
         m_cb_ptr = cb_ptr;
     }
 
@@ -180,9 +182,11 @@ public:
         cb_alloc_t cb_alloc;
 
         cb_t* cb_ptr = alloc_traits::allocate(cb_alloc, 1);
-        // TODO: exception safety
+        scoped_ptr<cb_t, cb_alloc_t> alloc_guard(cb_ptr);
+
         alloc_traits::construct(cb_alloc, cb_ptr, /*args*/ obj_alloc_ref, args...);
 
+        alloc_guard.relax();
         m_cb_ptr = cb_ptr;
         out_ptr = reinterpret_cast<T*>(m_cb_ptr->get_ptr());
     }
