@@ -48,7 +48,9 @@ public:
         std::allocator_traits<Allocator>::template rebind_alloc<sp_cb_separate>
         allocator_type;
 
-    sp_cb_separate(T* ptr, const Allocator& alloc_ref /*used for template deduction*/)
+    sp_cb_separate(
+        T* ptr,
+        const Allocator& alloc_ref /*used for template deduction*/)
     : sp_cb_base()
     , m_obj(ptr)
     , m_alloc_type_ref(alloc_ref)
@@ -91,7 +93,9 @@ public:
         allocator_type;
 
     template<typename ...Args>
-    sp_cb_inplace(const Allocator& alloc_ref /*used for template deduction*/, Args... args)
+    sp_cb_inplace(
+        const Allocator& alloc_ref /*used for template deduction*/,
+        Args... args)
     : sp_cb_base()
     , m_alloc_type_ref(alloc_ref) { 
         using obj_alloc_traits = std::allocator_traits<Allocator>;
