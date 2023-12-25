@@ -11,14 +11,13 @@ template<
 >
 class scoped_ptr {
 public:
-    scoped_ptr(T* in_ptr)
+    scoped_ptr(T* in_ptr = nullptr)
         : m_ptr(in_ptr)
     { }
 
-    scoped_ptr(const scoped_ptr& other) = delete;
-
     scoped_ptr(scoped_ptr&& other)
-    : m_ptr(other.m_ptr) {
+        : m_ptr(other.m_ptr)
+    {
         other.relax();
     }
 
@@ -27,15 +26,21 @@ public:
 
         checked_delete(m_ptr);
         if(m_ptr != nullptr) {
-            Allocator allocator;
-            alloc_traits::deallocate(allocator, m_ptr, 1);
+            alloc_traits::deallocate(Allocator(), m_ptr, 1);
         }
     }
     
+    scoped_ptr(const scoped_ptr& other) = delete;
     scoped_ptr& operator=(const scoped_ptr& other) = delete;
 
-    void relax() {
+    T* relax() {
+        T* tmp = m_ptr;
         m_ptr = nullptr;
+        return tmp;
+    }
+
+    T* get() {
+        return m_ptr;
     }
 
 private:
