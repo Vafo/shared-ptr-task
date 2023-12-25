@@ -10,7 +10,7 @@ class sp_cb_base {
 public:
 
     sp_cb_base()
-    : ref_count(1)
+        : ref_count(1)
     {}
 
     virtual ~sp_cb_base() {}
@@ -50,11 +50,15 @@ public:
 
     sp_cb_separate(
         T* ptr,
-        const Allocator& alloc_ref /*used for template deduction*/)
-    : sp_cb_base()
-    , m_obj(ptr)
-    , m_alloc_type_ref(alloc_ref)
+        const Allocator& alloc_ref /*used for template deduction*/
+    )
+        : sp_cb_base()
+        , m_obj(ptr)
+        , m_alloc_type_ref(alloc_ref)
     { }
+
+    sp_cb_separate(const sp_cb_separate& other) = delete;
+    sp_cb_separate& operator=(const sp_cb_separate& other) = delete;
 
     virtual ~sp_cb_separate() {
         using obj_alloc_traits = std::allocator_traits<Allocator>;
@@ -75,10 +79,6 @@ public:
         cb_alloc_traits::deallocate(cb_alloc, this, 1);
     };
 
-
-    sp_cb_separate(const sp_cb_separate& other) = delete;
-    sp_cb_separate& operator=(const sp_cb_separate& other) = delete;
-
 private:
     T* m_obj;
     const Allocator& m_alloc_type_ref;
@@ -95,9 +95,11 @@ public:
     template<typename ...Args>
     sp_cb_inplace(
         const Allocator& alloc_ref /*used for template deduction*/,
-        Args... args)
-    : sp_cb_base()
-    , m_alloc_type_ref(alloc_ref) { 
+        Args... args
+    )
+        : sp_cb_base()
+        , m_alloc_type_ref(alloc_ref)
+    { 
         using obj_alloc_traits = std::allocator_traits<Allocator>;
         Allocator obj_alloc;
         
@@ -142,11 +144,12 @@ constexpr sp_cb_inplace_tag_t sp_cb_inplace_tag;
 class sp_refcount {
 public:
     sp_refcount()
-    : m_cb_ptr(nullptr)
+        : m_cb_ptr(nullptr)
     {}
 
     sp_refcount(const sp_refcount& other)
-    : m_cb_ptr(other.m_cb_ptr) {
+        : m_cb_ptr(other.m_cb_ptr)
+    {
         if(m_cb_ptr != nullptr)
             m_cb_ptr->incr_ref();
     }
@@ -154,13 +157,15 @@ public:
     template<typename T>
     explicit
     sp_refcount(T* sep_ptr)
-    : sp_refcount(std::allocator<T>(), sep_ptr)
+        : sp_refcount(std::allocator<T>(), sep_ptr)
     {}
 
+    // Control Block & Object are separate
     template<typename T, typename Allocator>
     explicit
     sp_refcount(const Allocator& alloc_ref, T* sep_ptr)
-    : m_cb_ptr(nullptr) {
+        : m_cb_ptr(nullptr)
+    {
         using cb_t = sp_cb_separate<T, Allocator>;
         using cb_alloc_t = typename cb_t::allocator_type;
         using alloc_traits = std::allocator_traits< cb_alloc_t >;
@@ -175,6 +180,7 @@ public:
         m_cb_ptr = cb_ptr;
     }
 
+    // Control Block & Object are allocated together
     template<typename T, typename Allocator, typename ...Args>
     sp_refcount(
         sp_cb_inplace_tag_t, const Allocator& obj_alloc_ref,
@@ -206,8 +212,7 @@ public:
     }
 
     template<typename T>
-    T* get()
-    { 
+    T* get() { 
         assert(m_cb_ptr != nullptr);
         return reinterpret_cast<T*>(m_cb_ptr->get_ptr());
     }
