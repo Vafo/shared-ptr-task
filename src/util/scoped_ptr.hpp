@@ -26,7 +26,8 @@ public:
 
         checked_delete(m_ptr);
         if(m_ptr != nullptr) {
-            alloc_traits::deallocate(Allocator(), m_ptr, 1);
+            Allocator alloc;
+            alloc_traits::deallocate(alloc, m_ptr, 1);
         }
     }
     
