@@ -1,6 +1,9 @@
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_library(shared_ptr_test_suite OBJECT shared_ptr_test.cpp)
+add_library(shared_ptr_test_suite OBJECT
+    shared_ptr_test.cpp
+    util_test.cpp
+)
 
 target_link_libraries(shared_ptr_test_suite Catch2::Catch2)
 target_link_libraries(shared_ptr_test_suite shared_ptr_impl shared_ptr_compiler_flags)
