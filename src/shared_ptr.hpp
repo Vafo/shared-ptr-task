@@ -16,11 +16,6 @@ public:
     : m_refcount()
     {}
 
-    // // TODO: Is assignable?
-    // shared_ptr(const shared_ptr& other)
-    // : m_refcount(other.m_refcount)
-    // {}
-
     template<
         typename D,
         typename = std::enable_if< std::is_convertible<D*, T*>::value >::type
@@ -99,25 +94,28 @@ public:
 private:
 
     template<typename Allocator, typename ...Args>
-    shared_ptr(detail::sp_cb_inplace_tag_t, Allocator obj_alloc, Args... args)
-    : m_refcount(m_ptr, obj_alloc, args...)
+    shared_ptr(detail::sp_cb_inplace_tag_t, const Allocator& obj_alloc, Args... args)
+    : m_refcount(detail::sp_cb_inplace_tag, obj_alloc, m_ptr, args...)
     {}
 
     template<typename D, typename Allocator, typename ...Args>
-    friend shared_ptr<D> allocate_shared(Allocator obj_alloc, Args... args);
+    friend shared_ptr<D> allocate_shared(const Allocator& obj_alloc, Args... args);
 
     T* m_ptr;
     detail::sp_refcount m_refcount;
 }; // class shared_ptr
 
 template<typename T, typename Allocator, typename ...Args>
-shared_ptr<T> allocate_shared(Allocator obj_alloc, Args... args) {
+shared_ptr<T> allocate_shared(const Allocator& obj_alloc, Args... args) {
     return shared_ptr<T>(detail::sp_cb_inplace_tag, obj_alloc, args...);
 }
 
 template<typename T, typename ...Args>
 shared_ptr<T> make_shared(Args... args) {
-    return memory::allocate_shared<T>( std::allocator<T>{}, args... );
+    return memory::allocate_shared<T>(
+        std::allocator<T>{} /*used for template deduction*/,
+        args...
+    );
 }
 
 
