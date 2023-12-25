@@ -176,10 +176,12 @@ struct bad_obj {
     int big_data;
 };
 
-void leak_safe_constructor(bad_obj* ptr, std::allocator<bad_obj>& bad_alloc) {
+template<typename Allocator>
+void leak_safe_constructor(bad_obj* ptr) {
     using allocator_t = std::allocator<bad_obj>;
+    Allocator bad_alloc;
 
-    scoped_ptr holder(ptr, bad_alloc);
+    scoped_ptr holder(ptr);
     std::allocator_traits< allocator_t >::construct(bad_alloc, ptr); // throws
 
     scoped_relax(holder);
@@ -190,7 +192,7 @@ TEST_CASE("raii::ptr_holder: bad constructor", "[ptr_holder]") {
     allocator_t bad_alloc;
     bad_obj* ptr = std::allocator_traits< allocator_t >::allocate(bad_alloc, 1);
 
-    REQUIRE_THROWS(leak_safe_constructor(ptr, bad_alloc));
+    REQUIRE_THROWS(leak_safe_constructor<allocator_t>(ptr));
 }
 
 } // namespace postfix::util
