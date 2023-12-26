@@ -23,7 +23,7 @@ public:
     {}
 
     scoped_ptr(scoped_ptr&& other)
-        : m_ptr(other.relax())
+        : m_ptr(other.release())
     {}
 
     ~scoped_ptr() {
@@ -38,7 +38,7 @@ public:
     }
 
 public:
-    T* relax() {
+    T* release() {
         T* tmp = m_ptr;
         m_ptr = nullptr;
         return tmp;
@@ -51,16 +51,16 @@ public:
 }; // class constructor
 
 
-inline void scoped_relax() 
+inline void scoped_release() 
 { }
 
 template<
     typename Arg1,
     typename ...Args
 >
-inline void scoped_relax(Arg1& arg1, Args&... args) {
-    arg1.relax();
-    scoped_relax(args...);
+inline void scoped_release(Arg1& arg1, Args&... args) {
+    arg1.release();
+    scoped_release(args...);
 }
 
 } // namespace memory

@@ -182,7 +182,7 @@ private:
 
         alloc_traits::construct(cb_alloc, alloc_guard.get(), args...);
 
-        return alloc_guard.relax();
+        return alloc_guard.release();
     }
 
 public:

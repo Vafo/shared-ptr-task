@@ -20,7 +20,7 @@ void leak_safe_constructor(bad_obj* ptr) {
     scoped_ptr holder(ptr);
     std::allocator_traits< allocator_t >::construct(bad_alloc, ptr); // throws
 
-    scoped_relax(holder);
+    scoped_release(holder);
 }
 
 TEST_CASE("scoped_ptr: bad constructor", "[scoped_ptr]") {
@@ -35,7 +35,7 @@ TEST_CASE("scoped_ptr: get & move", "[scoped_ptr]") {
     const int test_val = 123;
     scoped_ptr<int> int_ptr; // scoped ptr is just a unique_ptr
     REQUIRE(int_ptr.get() == nullptr);
-    REQUIRE(int_ptr.relax() == nullptr);
+    REQUIRE(int_ptr.release() == nullptr);
 
     int* int_raw_ptr = new int(test_val);
     scoped_ptr<int> ptr_holder(int_raw_ptr);
