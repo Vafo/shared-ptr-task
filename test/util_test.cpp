@@ -23,12 +23,31 @@ void leak_safe_constructor(bad_obj* ptr) {
     scoped_relax(holder);
 }
 
-TEST_CASE("raii::ptr_holder: bad constructor", "[ptr_holder]") {
+TEST_CASE("scoped_ptr: bad constructor", "[scoped_ptr]") {
     using allocator_t = std::allocator<bad_obj>;
     allocator_t bad_alloc;
     bad_obj* ptr = std::allocator_traits< allocator_t >::allocate(bad_alloc, 1);
 
     REQUIRE_THROWS(leak_safe_constructor<allocator_t>(ptr));
+}
+
+TEST_CASE("scoped_ptr: get & move", "[scoped_ptr]") {
+    const int test_val = 123;
+    scoped_ptr<int> int_ptr; // scoped ptr is just a unique_ptr
+    REQUIRE(int_ptr.get() == nullptr);
+    REQUIRE(int_ptr.relax() == nullptr);
+
+    int* int_raw_ptr = new int(test_val);
+    scoped_ptr<int> ptr_holder(int_raw_ptr);
+    REQUIRE(ptr_holder.get() == int_raw_ptr);
+    
+    {
+        scoped_ptr<int> ptr_taker( std::move(ptr_holder) );
+        REQUIRE(ptr_holder.get() == nullptr);
+        REQUIRE(ptr_taker.get() == int_raw_ptr);
+    } /*memory released*/
+
+    REQUIRE(ptr_holder.get() == nullptr);
 }
 
 } // namespace memory
