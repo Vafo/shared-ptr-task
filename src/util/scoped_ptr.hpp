@@ -1,6 +1,8 @@
 #ifndef SCOPED_PTR_H
 #define SCOPED_PTR_H
 
+#include <memory> // std::allocator
+
 #include "checked_delete.hpp"
 
 namespace memory {
@@ -38,17 +40,17 @@ public:
     }
 
 public:
+    T* get() {
+        return m_ptr;
+    }
+
     T* release() {
         T* tmp = m_ptr;
         m_ptr = nullptr;
         return tmp;
     }
 
-    T* get() {
-        return m_ptr;
-    }
-
-}; // class constructor
+}; // class scoped_ptr
 
 
 inline void scoped_release() 

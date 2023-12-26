@@ -24,6 +24,9 @@ public:
     virtual ~sp_cb_base() {}
 
 public:
+    void* get_ptr()
+    { return do_get_ptr(); }
+
     void incr_ref()
     { ++ref_count; }
 
@@ -36,9 +39,6 @@ public:
             destroy();
         }
     }
-
-    void* get_ptr()
-    { return do_get_ptr(); }
 
 private:
     virtual void* do_get_ptr() = 0;
@@ -66,7 +66,8 @@ public:
         , m_alloc_type_ref(alloc_ref)
     {}
 
-    virtual ~sp_cb_separate() {
+    virtual
+    ~sp_cb_separate() {
         using obj_alloc_traits = std::allocator_traits<Allocator>;
         Allocator obj_alloc;
 
@@ -113,7 +114,8 @@ public:
         obj_alloc_traits::construct(obj_alloc, get_obj_ptr(), args...);
     }
 
-    virtual ~sp_cb_inplace() {
+    virtual
+    ~sp_cb_inplace() {
         using obj_alloc_traits = std::allocator_traits<Allocator>;
         Allocator obj_alloc;
 

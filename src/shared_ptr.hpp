@@ -35,18 +35,18 @@ public:
         typename D,
         typename = std::enable_if< std::is_convertible<D*, T*>::value >::type
     >
-    shared_ptr(const shared_ptr<D>& other)
-        : m_refcount(other.m_refcount)
-        , m_ptr(other.m_ptr)
+    shared_ptr(D* ptr)
+        : m_refcount(ptr)
+        , m_ptr(ptr)
     {}
 
     template<
         typename D,
         typename = std::enable_if< std::is_convertible<D*, T*>::value >::type
     >
-    shared_ptr(D* ptr)
-        : m_refcount(ptr)
-        , m_ptr(ptr)
+    shared_ptr(const shared_ptr<D>& other)
+        : m_refcount(other.m_refcount)
+        , m_ptr(other.m_ptr)
     {}
 
     shared_ptr&
