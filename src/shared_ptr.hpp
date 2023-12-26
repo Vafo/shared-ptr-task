@@ -1,9 +1,6 @@
 #ifndef SHARED_PTR_H
 #define SHARED_PTR_H
 
-#include <atomic>
-#include <cassert>
-
 #include "shared_ptr_details.hpp"
 #include "scoped_ptr.hpp"
 
@@ -11,6 +8,23 @@ namespace memory {
 
 template<typename T>
 class shared_ptr {
+private:
+    detail::sp_refcount m_refcount;
+    T* m_ptr;
+
+private:
+    template<typename Allocator, typename ...Args>
+    shared_ptr(
+        detail::sp_cb_inplace_tag_t,
+        const Allocator& obj_alloc,
+        Args... args
+    )
+        : m_refcount(
+            detail::sp_cb_inplace_tag,
+            obj_alloc, m_ptr,
+            args...)
+    {}
+
 public:
     shared_ptr()
         : m_refcount()
@@ -41,6 +55,7 @@ public:
         return *this;
     }
 
+public:
     T&
     operator*()
     { return *m_ptr; }
@@ -57,6 +72,7 @@ public:
     operator->() const
     { return m_ptr; }
 
+public:
     // template<typename D>
     bool operator==(const shared_ptr& other) const
     { return m_refcount == other.m_refcount; }
@@ -64,6 +80,7 @@ public:
     bool operator!=(const shared_ptr& other) const
     { return !(*this == other); }
 
+public:
     template<
         typename D,
         typename = std::enable_if< std::is_convertible<D*, T*>::value >::type
@@ -83,29 +100,15 @@ public:
         a.swap(b);
     }
 
+private:
     template<typename D>
     friend class shared_ptr;
-
-private:
-
-    template<typename Allocator, typename ...Args>
-    shared_ptr(
-        detail::sp_cb_inplace_tag_t,
-        const Allocator& obj_alloc,
-        Args... args
-    )
-        : m_refcount(
-            detail::sp_cb_inplace_tag,
-            obj_alloc, m_ptr,
-            args...)
-    {}
 
     template<typename D, typename Allocator, typename ...Args>
     friend shared_ptr<D> allocate_shared(const Allocator& obj_alloc, Args... args);
 
-    detail::sp_refcount m_refcount;
-    T* m_ptr;
 }; // class shared_ptr
+
 
 template<typename T, typename Allocator, typename ...Args>
 shared_ptr<T> allocate_shared(const Allocator& obj_alloc, Args... args) {
@@ -119,7 +122,6 @@ shared_ptr<T> make_shared(Args... args) {
         args...
     );
 }
-
 
 } // namespace memory
 
