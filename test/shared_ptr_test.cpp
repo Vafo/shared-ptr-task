@@ -1,5 +1,7 @@
 #include "catch2/catch_all.hpp"
 
+#include <iostream>
+
 #include <string>
 
 #include "shared_ptr.hpp"
@@ -167,5 +169,52 @@ TEST_CASE("shared_ptr: ptr to derived object ", "[shared_ptr]") {
 
 }
 
+
+int custom_alloc_calls = 0;
+int custom_dealloc_calls = 0;
+
+template<typename T>
+class custom_allocator: std::allocator<T> {
+private:
+    typedef std::allocator<T> base_class;
+
+public:
+    using typename base_class::value_type;
+
+public:
+    T* allocate(size_t num) {
+        ++custom_alloc_calls;
+        return base_class::allocate(num);
+    }
+
+    void deallocate(value_type* ptr, size_t num) {
+        ++custom_dealloc_calls;
+        return base_class::deallocate(ptr, num);
+    }
+
+}; // class custom_allocator
+
+TEST_CASE("shared_ptr: allocate_shared", "[shared_ptr]") {
+    custom_alloc_calls = 0;
+    custom_dealloc_calls = 0;
+
+    {
+        custom_allocator<int> allocator;
+        shared_ptr<int> int_ptr = memory::allocate_shared<int>(allocator, 123);
+
+        REQUIRE(*int_ptr == 123);
+        REQUIRE(custom_alloc_calls == 1);
+    }
+    REQUIRE(custom_dealloc_calls == 1);
+
+    custom_allocator<std::string> allocator;
+    shared_ptr<std::string> str_ptr = memory::allocate_shared<std::string>(allocator, "LOL");
+
+    REQUIRE(custom_alloc_calls == 2);
+    REQUIRE(custom_dealloc_calls == 1);
+
+    str_ptr = shared_ptr<std::string>(); // make it empty. no interface for this
+    REQUIRE(custom_dealloc_calls == 2);
+}
 
 } // namespace postfix::util
