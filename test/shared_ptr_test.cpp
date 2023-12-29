@@ -16,9 +16,9 @@ TEST_CASE("shared_ptr: construct shared_ptr", "[shared_ptr][normal]") {
 
     *iptr = 123;
     REQUIRE(*iptr == 123);
-    // Creates new shared_ptr (BAD PRACTICE, delegate conversion to shared_ptr to make_shared )
-    iptr = make_shared<int>(123);
-    REQUIRE(*iptr == 123);
+    
+    iptr = make_shared<int>(10);
+    REQUIRE(*iptr == 10);
 }
 
 TEST_CASE("shared_ptr: copy ptr", "[shared_ptr][normal]") {
@@ -33,6 +33,10 @@ TEST_CASE("shared_ptr: copy ptr", "[shared_ptr][normal]") {
 
     REQUIRE( sptr_copy != sptr_other );
     REQUIRE( *sptr_copy == *sptr_other );
+
+    (*sptr)[0] = 'B';
+    REQUIRE( *sptr_copy == "Bello World!" );
+    REQUIRE( *sptr_copy == *sptr );
 }
 
 TEST_CASE("shared_ptr: vector of shared_ptr", "[shared_ptr][normal]") {
@@ -66,23 +70,27 @@ int counter_t::counter = 0;
 TEST_CASE("shared_ptr: count const and dest of class", "[shared_ptr][normal]") {
     const int iterations = 10;
 
+    shared_ptr<counter_t> long_live_ptr = make_shared<counter_t>();
+    const int counter_valid_val = 1; /*there is 1 ptr already*/
+
     SECTION("construct individual ptrs") {
         // check if precondition is valid (independent from code under test)
-        assert(counter_t::counter == 0);
+        assert(counter_t::counter == counter_valid_val);
         for(int i = 0; i < iterations; ++i)
             shared_ptr<counter_t> count_ptr = make_shared<counter_t>();
-        REQUIRE(counter_t::counter == 0);
+        REQUIRE(counter_t::counter == counter_valid_val);
     }
 
     SECTION("constuct ptrs in vector") {
-        assert(counter_t::counter == 0);
+        assert(counter_t::counter == counter_valid_val);
         {
             std::vector<shared_ptr<counter_t>> count_vec;
-            for(int i = 0; i < iterations; ++i)
+            for(int i = 0; i < iterations; ++i) {
                 count_vec.push_back( make_shared<counter_t>() );
-            REQUIRE(counter_t::counter == iterations);
+                REQUIRE(counter_t::counter == counter_valid_val + i + 1/*count from 1*/);
+            }
         }
-        REQUIRE(counter_t::counter == 0);
+        REQUIRE(counter_t::counter == counter_valid_val);
     }
 
 }
