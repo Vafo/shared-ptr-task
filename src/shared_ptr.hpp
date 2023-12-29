@@ -1,9 +1,6 @@
 #ifndef SHARED_PTR_H
 #define SHARED_PTR_H
 
-#include <atomic>
-#include <cassert>
-
 #include "shared_ptr_details.hpp"
 #include "scoped_ptr.hpp"
 
@@ -11,18 +8,27 @@ namespace memory {
 
 template<typename T>
 class shared_ptr {
-public:
-    shared_ptr()
-    : m_refcount()
+private:
+    detail::sp_refcount m_refcount;
+    T* m_ptr;
+
+private:
+    template<typename Allocator, typename ...Args>
+    shared_ptr(
+        detail::sp_cb_inplace_tag_t,
+        const Allocator& obj_alloc,
+        Args... args
+    )
+        : m_refcount(
+            detail::sp_cb_inplace_tag,
+            obj_alloc, m_ptr,
+            args...)
     {}
 
-    template<
-        typename D,
-        typename = std::enable_if< std::is_convertible<D*, T*>::value >::type
-    >
-    shared_ptr(const shared_ptr<D>& other)
-    : m_refcount(other.m_refcount)
-    , m_ptr(other.m_ptr)
+public:
+    shared_ptr()
+        : m_refcount()
+        , m_ptr(nullptr)
     {}
 
     template<
@@ -30,8 +36,17 @@ public:
         typename = std::enable_if< std::is_convertible<D*, T*>::value >::type
     >
     shared_ptr(D* ptr)
-    : m_refcount(ptr)
-    , m_ptr(ptr)
+        : m_refcount(ptr)
+        , m_ptr(ptr)
+    {}
+
+    template<
+        typename D,
+        typename = std::enable_if< std::is_convertible<D*, T*>::value >::type
+    >
+    shared_ptr(const shared_ptr<D>& other)
+        : m_refcount(other.m_refcount)
+        , m_ptr(other.m_ptr)
     {}
 
     shared_ptr&
@@ -40,35 +55,32 @@ public:
         return *this;
     }
 
+public:
     T&
-    operator*() {
-        return *m_ptr;
-    }
+    operator*()
+    { return *m_ptr; }
 
     const T&
-    operator*() const {
-        return *m_ptr;
-    }
+    operator*() const
+    { return *m_ptr; }
 
     T*
-    operator->() {
-        return m_ptr;
-    }
+    operator->()
+    { return m_ptr; }
 
     const T*
-    operator->() const {
-        return m_ptr;
-    }
+    operator->() const
+    { return m_ptr; }
 
+public:
     // template<typename D>
-    bool operator==(const shared_ptr& other) const {
-        return m_refcount == other.m_refcount;
-    }
+    bool operator==(const shared_ptr& other) const
+    { return m_refcount == other.m_refcount; }
 
-    bool operator!=(const shared_ptr& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const shared_ptr& other) const
+    { return !(*this == other); }
 
+public:
     template<
         typename D,
         typename = std::enable_if< std::is_convertible<D*, T*>::value >::type
@@ -88,22 +100,15 @@ public:
         a.swap(b);
     }
 
+private:
     template<typename D>
     friend class shared_ptr;
-
-private:
-
-    template<typename Allocator, typename ...Args>
-    shared_ptr(detail::sp_cb_inplace_tag_t, const Allocator& obj_alloc, Args... args)
-    : m_refcount(detail::sp_cb_inplace_tag, obj_alloc, m_ptr, args...)
-    {}
 
     template<typename D, typename Allocator, typename ...Args>
     friend shared_ptr<D> allocate_shared(const Allocator& obj_alloc, Args... args);
 
-    T* m_ptr;
-    detail::sp_refcount m_refcount;
 }; // class shared_ptr
+
 
 template<typename T, typename Allocator, typename ...Args>
 shared_ptr<T> allocate_shared(const Allocator& obj_alloc, Args... args) {
@@ -117,7 +122,6 @@ shared_ptr<T> make_shared(Args... args) {
         args...
     );
 }
-
 
 } // namespace memory
 

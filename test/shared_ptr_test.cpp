@@ -1,5 +1,7 @@
 #include "catch2/catch_all.hpp"
 
+#include <iostream>
+
 #include <string>
 
 #include "shared_ptr.hpp"
@@ -14,9 +16,9 @@ TEST_CASE("shared_ptr: construct shared_ptr", "[shared_ptr][normal]") {
 
     *iptr = 123;
     REQUIRE(*iptr == 123);
-    // Creates new shared_ptr (BAD PRACTICE, delegate conversion to shared_ptr to make_shared )
-    iptr = make_shared<int>(123);
-    REQUIRE(*iptr == 123);
+    
+    iptr = make_shared<int>(10);
+    REQUIRE(*iptr == 10);
 }
 
 TEST_CASE("shared_ptr: copy ptr", "[shared_ptr][normal]") {
@@ -31,6 +33,10 @@ TEST_CASE("shared_ptr: copy ptr", "[shared_ptr][normal]") {
 
     REQUIRE( sptr_copy != sptr_other );
     REQUIRE( *sptr_copy == *sptr_other );
+
+    (*sptr)[0] = 'B';
+    REQUIRE( *sptr_copy == "Bello World!" );
+    REQUIRE( *sptr_copy == *sptr );
 }
 
 TEST_CASE("shared_ptr: vector of shared_ptr", "[shared_ptr][normal]") {
@@ -64,23 +70,27 @@ int counter_t::counter = 0;
 TEST_CASE("shared_ptr: count const and dest of class", "[shared_ptr][normal]") {
     const int iterations = 10;
 
+    shared_ptr<counter_t> long_live_ptr = make_shared<counter_t>();
+    const int counter_valid_val = 1; /*there is 1 ptr already*/
+
     SECTION("construct individual ptrs") {
         // check if precondition is valid (independent from code under test)
-        assert(counter_t::counter == 0);
+        assert(counter_t::counter == counter_valid_val);
         for(int i = 0; i < iterations; ++i)
             shared_ptr<counter_t> count_ptr = make_shared<counter_t>();
-        REQUIRE(counter_t::counter == 0);
+        REQUIRE(counter_t::counter == counter_valid_val);
     }
 
     SECTION("constuct ptrs in vector") {
-        assert(counter_t::counter == 0);
+        assert(counter_t::counter == counter_valid_val);
         {
             std::vector<shared_ptr<counter_t>> count_vec;
-            for(int i = 0; i < iterations; ++i)
+            for(int i = 0; i < iterations; ++i) {
                 count_vec.push_back( make_shared<counter_t>() );
-            REQUIRE(counter_t::counter == iterations);
+                REQUIRE(counter_t::counter == counter_valid_val + i + 1/*count from 1*/);
+            }
         }
-        REQUIRE(counter_t::counter == 0);
+        REQUIRE(counter_t::counter == counter_valid_val);
     }
 
 }
@@ -168,31 +178,51 @@ TEST_CASE("shared_ptr: ptr to derived object ", "[shared_ptr]") {
 }
 
 
-struct bad_obj {
-    bad_obj() {
-        throw std::runtime_error("bad object");
+int custom_alloc_calls = 0;
+int custom_dealloc_calls = 0;
+
+template<typename T>
+class custom_allocator: std::allocator<T> {
+private:
+    typedef std::allocator<T> base_class;
+
+public:
+    using typename base_class::value_type;
+
+public:
+    T* allocate(size_t num) {
+        ++custom_alloc_calls;
+        return base_class::allocate(num);
     }
 
-    int big_data;
-};
+    void deallocate(value_type* ptr, size_t num) {
+        ++custom_dealloc_calls;
+        return base_class::deallocate(ptr, num);
+    }
 
-template<typename Allocator>
-void leak_safe_constructor(bad_obj* ptr) {
-    using allocator_t = std::allocator<bad_obj>;
-    Allocator bad_alloc;
+}; // class custom_allocator
 
-    scoped_ptr holder(ptr);
-    std::allocator_traits< allocator_t >::construct(bad_alloc, ptr); // throws
+TEST_CASE("shared_ptr: allocate_shared", "[shared_ptr]") {
+    custom_alloc_calls = 0;
+    custom_dealloc_calls = 0;
 
-    scoped_relax(holder);
-}
+    {
+        custom_allocator<int> allocator;
+        shared_ptr<int> int_ptr = memory::allocate_shared<int>(allocator, 123);
 
-TEST_CASE("raii::ptr_holder: bad constructor", "[ptr_holder]") {
-    using allocator_t = std::allocator<bad_obj>;
-    allocator_t bad_alloc;
-    bad_obj* ptr = std::allocator_traits< allocator_t >::allocate(bad_alloc, 1);
+        REQUIRE(*int_ptr == 123);
+        REQUIRE(custom_alloc_calls == 1);
+    }
+    REQUIRE(custom_dealloc_calls == 1);
 
-    REQUIRE_THROWS(leak_safe_constructor<allocator_t>(ptr));
+    custom_allocator<std::string> allocator;
+    shared_ptr<std::string> str_ptr = memory::allocate_shared<std::string>(allocator, "LOL");
+
+    REQUIRE(custom_alloc_calls == 2);
+    REQUIRE(custom_dealloc_calls == 1);
+
+    str_ptr = shared_ptr<std::string>(); // make it empty. no interface for this
+    REQUIRE(custom_dealloc_calls == 2);
 }
 
 } // namespace postfix::util
