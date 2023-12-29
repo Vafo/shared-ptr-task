@@ -173,7 +173,7 @@ public:
 
 private:
     template<typename cb_T, typename ...Args>
-    auto _init(Args... args) {
+    static auto S_init(Args... args) {
         using cb_alloc_t = typename cb_T::allocator_type;
         using alloc_traits = std::allocator_traits< cb_alloc_t >;
         cb_alloc_t cb_alloc;
@@ -199,7 +199,7 @@ public:
 
     template<typename T, typename Allocator>
     sp_refcount(const Allocator& alloc_ref, T* sep_ptr)
-        : m_cb_ptr( _init<sp_cb_separate<T, Allocator>>(sep_ptr, alloc_ref) )
+        : m_cb_ptr( S_init<sp_cb_separate<T, Allocator>>(sep_ptr, alloc_ref) )
     {}
 
     // Control Block & Object are allocated together
@@ -208,7 +208,7 @@ public:
         sp_cb_inplace_tag_t, const Allocator& obj_alloc_ref,
         /*out*/T*& out_ptr, Args... args
     )
-        : m_cb_ptr( _init<sp_cb_inplace<T, Allocator>>(obj_alloc_ref, args...) )
+        : m_cb_ptr( S_init<sp_cb_inplace<T, Allocator>>(obj_alloc_ref, args...) )
     { out_ptr = reinterpret_cast<T*>(m_cb_ptr->get_ptr()); }
 
 public:
