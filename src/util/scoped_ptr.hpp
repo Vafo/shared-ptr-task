@@ -1,5 +1,5 @@
-#ifndef SCOPED_PTR_H
-#define SCOPED_PTR_H
+#ifndef SP_SCOPED_PTR_H
+#define SP_SCOPED_PTR_H
 
 #include <memory> // std::allocator
 

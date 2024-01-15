@@ -3,8 +3,8 @@
 
 #include <atomic>
 
-#include "scoped_ptr.hpp"
-#include "checked_delete.hpp"
+#include "util/scoped_ptr.hpp"
+#include "util/checked_delete.hpp"
 
 namespace memory::detail {
 
