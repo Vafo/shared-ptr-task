@@ -17,12 +17,12 @@ private:
     shared_ptr(
         detail::sp_cb_inplace_tag_t,
         const Allocator& obj_alloc,
-        Args... args
+        Args&&... args
     )
         : m_refcount(
             detail::sp_cb_inplace_tag,
             obj_alloc, m_ptr,
-            args...)
+            std::forward<Args>(args)...)
     {}
 
 public:
@@ -73,7 +73,10 @@ public:
     { return m_ptr; }
 
 public:
-    // template<typename D>
+    // TODO: come up with a better way of checking shared_ptr validity
+    operator bool()
+    { return m_ptr != nullptr; }
+
     bool operator==(const shared_ptr& other) const
     { return m_refcount == other.m_refcount; }
 
@@ -105,21 +108,23 @@ private:
     friend class shared_ptr;
 
     template<typename D, typename Allocator, typename ...Args>
-    friend shared_ptr<D> allocate_shared(const Allocator& obj_alloc, Args... args);
+    friend shared_ptr<D> allocate_shared(const Allocator& obj_alloc, Args&&... args);
 
 }; // class shared_ptr
 
 
 template<typename T, typename Allocator, typename ...Args>
-shared_ptr<T> allocate_shared(const Allocator& obj_alloc, Args... args) {
-    return shared_ptr<T>(detail::sp_cb_inplace_tag, obj_alloc, args...);
+shared_ptr<T> allocate_shared(const Allocator& obj_alloc, Args&&... args) {
+    return shared_ptr<T>(
+        detail::sp_cb_inplace_tag,
+        obj_alloc, std::forward<Args>(args)...);
 }
 
 template<typename T, typename ...Args>
-shared_ptr<T> make_shared(Args... args) {
+shared_ptr<T> make_shared(Args&&... args) {
     return memory::allocate_shared<T>(
         std::allocator<T>{} /*used for template deduction*/,
-        args...
+        std::forward<Args>(args)...
     );
 }
 

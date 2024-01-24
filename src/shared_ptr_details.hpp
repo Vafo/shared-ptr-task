@@ -2,6 +2,7 @@
 #define SHARED_PTR_DETAILS_H
 
 #include <atomic>
+#include <cassert>
 
 #include "util/scoped_ptr.hpp"
 #include "util/checked_delete.hpp"
@@ -104,14 +105,14 @@ public:
     template<typename ...Args>
     sp_cb_inplace(
         const Allocator& alloc_ref, /*used for template deduction*/
-        Args... args
+        Args&&... args
     )
         : m_alloc_type_ref(alloc_ref)
     { 
         using obj_alloc_traits = std::allocator_traits<Allocator>;
         Allocator obj_alloc;
         
-        obj_alloc_traits::construct(obj_alloc, get_obj_ptr(), args...);
+        obj_alloc_traits::construct(obj_alloc, get_obj_ptr(), std::forward<Args>(args)...);
     }
 
     virtual
@@ -173,7 +174,7 @@ public:
 
 private:
     template<typename cb_T, typename ...Args>
-    static auto S_init(Args... args) {
+    static auto S_init(Args&&... args) {
         using cb_alloc_t = typename cb_T::allocator_type;
         using alloc_traits = std::allocator_traits< cb_alloc_t >;
         cb_alloc_t cb_alloc;
@@ -182,7 +183,8 @@ private:
             alloc_traits::allocate(cb_alloc, 1)
         );
 
-        alloc_traits::construct(cb_alloc, alloc_guard.get(), args...);
+        alloc_traits::construct(cb_alloc, alloc_guard.get(),
+            std::forward<Args>(args)...);
 
         return alloc_guard.release();
     }
@@ -206,9 +208,12 @@ public:
     template<typename T, typename Allocator, typename ...Args>
     sp_refcount(
         sp_cb_inplace_tag_t, const Allocator& obj_alloc_ref,
-        /*out*/T*& out_ptr, Args... args
+        /*out*/T*& out_ptr, Args&&... args
     )
-        : m_cb_ptr( S_init<sp_cb_inplace<T, Allocator>>(obj_alloc_ref, args...) )
+        : m_cb_ptr(
+            S_init<sp_cb_inplace<T, Allocator>>(
+                obj_alloc_ref,
+                std::forward<Args>(args)...) )
     { out_ptr = reinterpret_cast<T*>(m_cb_ptr->get_ptr()); }
 
 public:
